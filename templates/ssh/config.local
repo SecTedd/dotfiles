@@ -1,0 +1,10 @@
+# SSH hosts and keys for this Mac only (git-ignored; included first by ~/.ssh/config).
+# ~/.ssh/config already sets AddKeysToAgent + UseKeychain for every host.
+
+#Host github.com
+#  User git
+#  IdentityFile ~/.ssh/github
+#  IdentitiesOnly yes
+
+#Host bitbucket.org
+#  IdentityFile ~/.ssh/bitbucket

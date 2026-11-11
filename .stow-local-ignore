@@ -1,0 +1,16 @@
+# Files in the repo that are NOT linked into ~ by `stow .`
+# (this list replaces stow's built-in defaults, so those are repeated here)
+\.git
+\.gitignore
+\.stow-local-ignore
+\.DS_Store
+^/README.*
+^/CLAUDE\.md
+^/LICENSE
+^/LICENSES
+^/Brewfile.*
+^/health-check\.sh
+^/setup\.sh
+^/lib
+^/templates
+\.cc-writes

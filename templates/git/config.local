@@ -1,0 +1,14 @@
+# git settings for this Mac only (git-ignored; included last by ~/.config/git/config,
+# so anything here overrides the shared config)
+[user]
+	name = Your Name
+	email = you@example.com
+
+# Work Mac: use SSH for Bitbucket even when a URL is https
+#[url "ssh://git@bitbucket.org/"]
+#	insteadOf = https://bitbucket.org/
+
+# A second identity for every repo under one folder: ~/.config/git/work.local holds
+# just `[user]` with the other email
+#[includeIf "gitdir:~/work/"]
+#	path = ~/.config/git/work.local

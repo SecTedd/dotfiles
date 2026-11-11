@@ -1,0 +1,243 @@
+# dotfiles
+
+All my macOS config in one place. The folder mirrors `~`; [GNU Stow](https://www.gnu.org/software/stow/)
+links everything into place. Nothing in here is tied to one Mac or one job: identity, hosts and
+work paths live in git-ignored local files (see below), so the same repo serves a work Mac
+(Bitbucket) and a private one (GitHub).
+
+## New Mac
+
+1. Install [Homebrew](https://brew.sh) (it installs the Xcode command line tools, which bring `git`).
+   An Apple Silicon Mac is assumed: the scripts look for Homebrew in `/opt/homebrew`.
+2. ```
+   git clone <repo> ~/dotfiles && ~/dotfiles/setup.sh
+   ```
+   `setup.sh` installs the Brewfile packages, makes fish the login shell, links the repo into `~`,
+   installs Oh My Fish, the tmux plugins and the yazi flavor, points Hammerspoon at its config,
+   compiles the color picker's helper, creates the local files from `templates/` and finishes
+   with the health check.
+   It asks only for the sudo password (login shell) and before moving existing files aside.
+   Every download is pinned to a version and comes from the official repo (listed in `setup.sh`).
+3. What it can't do for you: allow Hammerspoon under System Settings → Privacy & Security →
+   Accessibility, fill in the local files, add SSH keys, `nvm install --lts`, `pyenv install ...`.
+
+`setup.sh --dry-run` only prints what it would do, `--verbose` also lists what was already fine
+(by default only changes, warnings and errors are printed); `--help` lists the options.
+
+## Updating a Mac
+
+```
+cd ~/dotfiles && git pull && ./setup.sh
+```
+Every step checks first and only does what's missing (new packages, plugins, links, templates).
+Nothing is upgraded; `brew upgrade` stays a separate decision.
+
+## Pins
+
+Everything `setup.sh` downloads is pinned to a commit or tag (the list is at the top of the
+script) and comes from its official repo. The pins are the source of truth: an installed copy
+at another commit is moved back to the pin on the next `setup.sh`. The same goes for the
+Catppuccin tag in `tmux.conf`, the yazi flavor revision in `.config/yazi/package.toml` and the
+nvim plugin commits in `lazy-lock.json`. Homebrew has no pins; it installs current versions.
+
+```
+./setup.sh --pins   # pinned / installed / latest upstream, per piece (read-only)
+```
+To update deliberately: read the upstream changes, change the pin in the repo, pull on each
+Mac and run `setup.sh`. For nvim: `:Lazy update` rewrites the lock file; commit it (the plugin
+manager's hourly check for updates is off, nothing runs in the background).
+
+## Health check
+
+```
+bash ~/dotfiles/health-check.sh            # read-only, ~15 s
+bash ~/dotfiles/health-check.sh --online   # also tests the SSH login to every host in ~/.ssh/config.local
+bash ~/dotfiles/health-check.sh --verbose  # also every passed check (default: warnings, failures, notes)
+```
+Checks packages, links, secrets, fish, zsh, tmux (on a throwaway server), nvim, Hammerspoon,
+the Claude Code scripts, git, SSH and the other tools, and proves at the end that it changed
+no file in the repo.
+
+## What's in here
+
+| Path | What |
+|---|---|
+| `setup.sh` | New Mac / update: everything after `git clone` (see above) |
+| `health-check.sh` | Read-only check that everything is installed, linked and working |
+| `lib/common.sh` | Output helpers shared by the two scripts |
+| `templates/` | Starting points for the local files (`setup.sh` copies them if missing) |
+| `Brewfile` | Homebrew packages (`brew bundle`) |
+| `.config/shell/env.sh` | Shared environment for fish and zsh: PATH (Homebrew, pyenv, nvm's default Node, Docker Desktop's CLI folder when present), EDITOR, npm settings |
+| `.config/fish/` | fish: config, functions (`gdf`, `y`, `nvm`, `claude`), abbreviations (`va`, `gr`, `cr`, `cu`, `nrd`, `rl`), key bindings |
+| `.config/omf/` | Oh My Fish: packages (`bundle`) and the `catppuccin-lean` prompt theme |
+| `.zshenv` `.zprofile` `.zshrc` | zsh: environment only + minimal emergency fallback (Claude Code's Bash tool runs zsh) |
+| `.config/tmux/` | tmux (prefix `Ctrl-Space`, Catppuccin, Claude Code integration), `window-menu.sh` (Ctrl-Shift-Tab) |
+| `.config/nvim/` | Neovim (LazyVim) |
+| `.config/hammerspoon/` | Hammerspoon: `init.lua`, `core/` (boxes, shortcut registry, toggles, hold-to-repeat, per-Mac settings), `modules/` (apps, tabs, scroll, chrome, windows, windowmode, claude, caffeine, colorpicker, panel), `data/` (fish shortcuts and plugin-bound tmux keys for the panel) |
+| `.config/git/` | git config, global attributes (mergiraf) and ignore |
+| `.config/ghostty/` `.config/lazygit/` `.config/bat/` `.config/yazi/` | Terminal, lazygit, bat, yazi |
+| `.claude/` | Claude Code settings, `CLAUDE.md` (how I work with Claude, every project), hook/statusline scripts, the command guard (`claude-guard.sh`, `guard-ask`, `guard-deny`), the read-only mode (`claude-readonly.sh`, `readonly-allow`, `readonly-deny`); no sessions or credentials |
+| `CLAUDE.md` | Rules for Claude Code sessions in this repo |
+| `.ssh/config` | SSH client defaults only (hosts and keys are in the local file) |
+| `LICENSE` `LICENSES/` | MIT for this repo; the licenses of the third-party code adapted in it |
+
+Not linked into `~` (see `.stow-local-ignore`): the scripts, `lib/`, `templates/`, `README.md`,
+`Brewfile`, `LICENSE`, `LICENSES/`, `CLAUDE.md`, git files.
+
+## Machine-specific settings (local files)
+
+Git-ignored (`*.local`, `*.local.*`), created by `setup.sh` from `templates/`, skipped if missing:
+
+| Local file | Included by | Contents |
+|---|---|---|
+| `~/.config/git/config.local` | git config (last, so it overrides) | name, email, host rules, `includeIf` for a second identity |
+| `~/.ssh/config.local` | `~/.ssh/config` (first, so it wins) | git hosts + keys |
+| `~/.config/shell/env.local.sh` | `env.sh` (at the end) | extra PATH entries (`path_append`) |
+| `~/.config/hammerspoon/config.local.lua` | `core/machine.lua` | apps behind ⌃⌥⌘ keys that exist only on this Mac (e.g. Slack) |
+| `~/.claude/plugins.local.json` | the fish `claude` function (`--settings`) | Claude Code plugins and their marketplaces |
+
+The templates show the format; e.g. a work Mac adds the Bitbucket `insteadOf` rule and Slack, a
+private Mac the GitHub key and its own email. The health check flags a git identity still at the
+template's placeholder.
+
+## Hammerspoon
+
+`init.lua` loads `core/` (shared: the Catppuccin boxes, the shortcut registry, toggles,
+hold-to-repeat, per-Mac settings), then every module in `modules/` on its own, so a broken module
+shows its error in a box while the rest keeps working. Saving a `.lua` file reloads the config.
+A module is one feature in one file that returns a table with everything that must stay alive
+(hotkeys, menu bar items, watchers); it uses `core`, never another module. Global hotkeys are
+bound through `shortcuts.bind(...)` with a group and a description, never through `hs.hotkey`
+directly; window mode's keys live in an `hs.hotkey.modal` and are listed by hand (`shortcuts.add`).
+On/off things (Claude sounds, display awake) are `core/toggle.lua` switches: an optional menu bar
+icon (click = silent) and/or an optional URL event for tmux (`hammerspoon://…-toggle`, flashes
+the new state), both listed in the panel.
+
+### Shortcut panel (⌃⌥⌘ Space)
+
+A searchable list of every shortcut in a small window (`hs.webview` showing
+`modules/panel/panel.html`: Catppuccin card, search field with a result count, list, footer; it
+opens on the screen of the active window). The window is created at load for an instant open and
+released again after 10 unused minutes (its WebKit process takes 30–100 MB); the next open
+recreates it. Parts: `panel/entries.lua` (sources), `panel/search.lua` (fzf + ranking),
+`panel/keys.lua` (key labels), `panel/tmux.lua` (tmux). Type to filter (fzf, fuzzy; keys are
+also searchable by name: `ctrl l`, `cmd`, `enter`), `⌃J`/`⌃K` move, `⏎` or a click runs it,
+`Esc` or a click outside closes. Three sources, two of them maintenance-free:
+
+- **Hammerspoon:** the registry (`core/shortcuts.lua`); a global hotkey can't exist without being listed.
+- **tmux:** read live from `tmux list-keys -N`. tmux's defaults carry notes; ours get them with
+  `bind -N "…"` in `tmux.conf` (the health check fails on a binding without one). `⏎` sends the
+  keys to your active tmux client, so the binding runs like a key press.
+- **fish needs extra treatment:** fish has no descriptions to read, so its useful built-ins and
+  our functions are listed by hand in `data/shortcuts.lua` (one line per entry; the same file
+  has a slot for tmux keys that a plugin would bind without notes, empty right now). `⏎`
+  copies the command or key to the clipboard.
+
+## Notes
+
+- Runtime files are git-ignored (`fish_variables`, lazygit's `state.yml`, yazi's downloaded flavors).
+- Claude Code rewrites `~/.claude/settings.json` itself; if it ever replaces the symlink with a
+  regular file, copy the changes back here and run `stow .` again (the health check notices).
+- Every shell command Claude Code wants to run (Bash, Monitor, PowerShell) passes through
+  `.claude/claude-guard.sh` (a PreToolUse hook): a command matching a line of `guard-ask`
+  prompts for approval, also in auto mode, and the prompt names the matched text; one matching
+  `guard-deny` is refused. One regex per line; add to `guard-ask` freely, a match only costs a
+  prompt. The health check self-tests the guard with sample command strings (nothing runs). New
+  Claude sessions pick up changes.
+- `prefix R` makes the Claude in the current tmux pane read-only, to discuss without risk:
+  `.claude/claude-readonly.sh` (a PreToolUse hook) refuses edits and every shell command that
+  writes (`readonly-deny`, redirections, substitutions, in-place edits), runs the ones that read
+  (`readonly-allow`) and asks you about anything it cannot tell, one regex per line in both
+  files. The status line shows a red lock, Hammerspoon flashes the toggle. Per pane, so a
+  Claude in another pane is unaffected.
+- `ask` (fish) writes a prompt for a Claude in the current tmux window in an nvim buffer
+  without a file, so a long prompt and a long answer each get their own pane. The same menu as
+  `prefix BSpace`, here limited to this window, picks the session first, then nvim
+  opens with that one buffer (a single session needs no menu, Esc leaves you at the prompt).
+  Every session gets a buffer of its own, which stays listed until nvim exits (an unsent
+  prompt counts as unsaved: `:qa!` discards); a session that already has one gets it back.
+  While a prompt buffer is current, its pane and the Claude pane are peers: whichever of the
+  two is active lights the other. `:w` pastes the buffer into that Claude's prompt line
+  (bracketed, newlines stay) and focuses its pane, you press Enter; `:q!` discards. In nvim,
+  `:ClaudePrompt` opens the menu itself and `:ClaudeTarget` aims any buffer at a session.
+  Code: `nvim/lua/config/claude_prompt.lua`, `.claude/claude-menu.sh`, the hooks in `tmux.conf`.
+- `Ctrl-hjkl` moves between nvim windows and tmux panes alike: tmux decides with a format test
+  on the pane's program (no shell per key), nvim with `lua/config/tmux_navigate.lua`, which also
+  gets it right from the file explorer's floating sidebar.
+- tmux windows without the prefix: `Ctrl-Tab` toggles to the last window, `Ctrl-Shift-Tab` pops
+  a menu of the windows (`tmux/window-menu.sh`, 1-9 picks), `⌘1`-`⌘9` jump to a window. Ghostty
+  sends these keys to tmux as extended keys (`config.ghostty`), so its own tabs lose them.
+- The tmux status bar: every tab is one block (number in the window's state color, name)
+  and so is the session/clock capsule, each fading in and out at the edges with one pixel glyph
+  (Pablo's caps: the left one is drawn in the bar's color over the block's; the theme's
+  `custom` style with our separators in `tmux.conf`), a zoomed pane's window name is dotted,
+  and the Claude fleet (`.claude/claude-fleet.sh`, a dot per session in its
+  state's color, green busy, red waiting for you, grey idle, and the name) shows the most
+  recently active sessions first and leaves out the ones that don't fit beside the tabs (tmux
+  passes the client width). A click on a dot jumps to that session's pane.
+- fish does not repaint the prompt when the window is resized (`fish_handle_reflow 0` in
+  `config.fish`): Ghostty and tmux re-wrap the screen themselves, and fish repainting on top
+  of that left a copy of the prompt's first line behind at every step.
+- Ghostty shows no title bar (`macos-titlebar-style = hidden`); the frame and the rounded
+  corners stay. Move the window with the ⌃⌥ keys, or ⌥-drag its frame.
+- `⌃⌥+` / `⌃⌥-` grow / shrink the focused window through centered sizes, smoothly: shares of
+  the screen's usable frame (`hammerspoon/modules/windows/steps.lua`), so every monitor behaves
+  the same.
+- Claude Code's own Bash sandbox is on (`sandbox` in `settings.json`): shell commands can write
+  only inside the project folder, a temp dir and the package caches, reach only the allowed
+  hosts (npm, PyPI, GitHub, Bitbucket) and cannot read `~/.ssh`, `~/.npmrc` and the other key
+  files. Sandboxed commands run without a prompt; the guard above is what still asks. The
+  allowlist is locked (no per-command exceptions), so a command that needs more fails inside
+  and Claude asks to run it unsandboxed, which always prompts. git over SSH runs outside the
+  sandbox (a macOS limit): fetch and pull without a prompt, push through the guard. Docker and
+  `just` run outside it too, since the Docker socket is unreachable from inside; both go
+  through the guard, as a `just` recipe runs anything.
+  Start Claude in the project folder, not in `~`, or the writable area is your whole home.
+  With the sandbox on, Claude Code creates `.claude/.cc-writes/` in any project folder it works
+  in; the global git ignore hides it everywhere, and this repo ignores and never stows it.
+- Claude Code has no user-level local settings file, so the plugins and marketplaces of one Mac
+  live in `~/.claude/plugins.local.json`, which the fish `claude` function passes with
+  `--settings`. A `/plugin install` writes into `settings.json` instead; move the entry over
+  (the health check flags it).
+- tmux works without its plugins (a fresh Mac before `setup.sh`): plain look, a hint in the
+  status bar, no theme; the keys, Ctrl-hjkl included, work.
+- Boxes (Hammerspoon, `core/ui.lua`) come in three durations: 1 s feedback (copied, tmux.conf
+  reloaded, sync toggled), 4 s alerts (Claude), 8 s config errors. tmux's own feedback messages
+  are such boxes too (`hammerspoon://flash?text=…`), not status bar text.
+- Some tools offer to "manage" `~/.ssh/config` for you; that file is in this repo, so keep such
+  Includes in `~/.ssh/config.local`. The health check flags absolute home paths that land in
+  repo files anyway.
+- The running tmux server passes its environment to new panes. After changes to `env.sh`,
+  `tmux kill-server` and start tmux from a new terminal window; the health check warns about a
+  stale server PATH.
+
+## Licenses and credits
+
+This repo is MIT licensed (`LICENSE`). The adapted third-party code below keeps its own licenses:
+
+- Claude Code integration (`.claude/claude-announce.sh`, `claude-fleet.sh`, `claude-menu.sh`,
+  `hammerspoon/modules/claude.lua`, parts of `tmux.conf`): adapted from [scorphus/tmux-claude-integration](https://github.com/scorphus/tmux-claude-integration),
+  BSD 3-Clause, see `LICENSES/tmux-claude-integration.txt`.
+- `hammerspoon/modules/caffeine.lua`, `tmux/window-menu.sh` and fish copy key bindings: adapted
+  from [scorphus/scorphiles](https://github.com/scorphus/scorphiles), Apache 2.0, see
+  `LICENSES/scorphiles-Apache-2.0.txt`.
+- `.config/nvim/`: based on the [LazyVim starter](https://github.com/LazyVim/starter), Apache 2.0
+  (`.config/nvim/LICENSE`).
+- `fish/functions/y.fish`: shell wrapper from the [Yazi docs](https://yazi-rs.github.io).
+
+Own code that follows someone else's idea:
+
+- `Ctrl-hjkl` across tmux panes and nvim windows (`tmux.conf`, `nvim/lua/config/tmux_navigate.lua`):
+  the idea of [christoomey/vim-tmux-navigator](https://github.com/christoomey/vim-tmux-navigator) (MIT).
+- `fish/functions/nvm.fish`: nvm through foreign-env, as [derekstavis/plugin-nvm](https://github.com/derekstavis/plugin-nvm)
+  (MIT) did it; loaded on first use instead of at every start.
+- The pixel-fade status bar (`tmux.conf`), the window keys through Ghostty (`Ctrl-Tab`,
+  `⌘1`-`⌘9`), the fleet dropping the least recently active sessions and the centered window
+  sizes (`hammerspoon/modules/windows/steps.lua`): ideas from
+  [scorphus/scorphiles](https://github.com/scorphus/scorphiles) (Apache 2.0), written for this config.
+- The `catppuccin-lean` fish prompt: the layout of [Powerlevel10k](https://github.com/romkatv/powerlevel10k)'s
+  lean style (MIT), written in fish.
+- Colors everywhere: the [Catppuccin](https://github.com/catppuccin/catppuccin) Mocha palette (MIT).
+
+Downloaded by `setup.sh` at their pins, not included here: Oh My Fish, foreign-env, tpm,
+catppuccin/tmux, the yazi flavor, the Homebrew packages, the nvim plugins.

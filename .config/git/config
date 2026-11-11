@@ -1,0 +1,62 @@
+[core]
+	editor = nvim
+	pager = delta
+
+[init]
+	defaultBranch = main
+
+[pull]
+	rebase = true
+
+[push]
+	useForceIfIncludes = true
+
+[rebase]
+	autosquash = true
+
+[rerere]
+	enabled = true
+
+[merge]
+	conflictStyle = zdiff3
+
+[merge "mergiraf"]
+	name = mergiraf
+	driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
+
+[diff]
+	colorMoved = zebra
+	wsErrorHighlight = all
+
+[interactive]
+	diffFilter = delta --color-only
+
+[alias]
+	co   = checkout
+	mff  = merge --ff-only
+	br   = branch
+	st   = status
+	ds   = diff --staged
+	cam  = commit --amend
+	camn = commit --amend --no-edit
+	fat  = fetch --all --tags
+	rup  = remote update -p
+	lo   = log --oneline --graph --decorate
+	loa  = log --oneline --graph --decorate --all
+	pufl = push --force-with-lease
+	staash = stash --all
+
+[delta]
+	line-numbers = true
+	syntax-theme = Catppuccin Mocha
+	# Full-screen less with mouse support: the wheel and Hammerspoon's scrolling
+	# scroll the diff. git starts the pager with LESS=FRX, so -+X -+F switch those
+	# off again: -X would keep less on the normal screen (scrolled-past lines pile
+	# up in tmux's scrollback), -F quits on short output. Short diffs open in the
+	# pager too (q closes it).
+	pager = less -R --mouse -+X -+F
+
+# Machine-specific settings (name, email, hosts), git-ignored, see README.
+# Last, so it can override anything above.
+[include]
+	path = ~/.config/git/config.local

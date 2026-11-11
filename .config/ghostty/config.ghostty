@@ -1,0 +1,29 @@
+theme = Catppuccin Mocha
+font-family = "RobotoMono Nerd Font"
+background-blur-radius = 20
+mouse-hide-while-typing = true
+window-decoration = true
+# No title bar, one more row for the terminal; the frame and its corners stay
+# (⌥-drag the frame to move the window, or the Hammerspoon window keys)
+macos-titlebar-style = hidden
+macos-option-as-alt = left
+background-opacity = 0.7
+font-size = 16
+
+# The grid rarely fills the window exactly: the leftover pixels are split between
+# all four edges instead of piling up at the right and bottom
+window-padding-balance = true
+
+# tmux windows: Ctrl-Tab, Ctrl-Shift-Tab and ⌘1-9 go to tmux as extended keys
+# (CSI 27;<modifier>;<key>~, Ctrl-1-9 for ⌘1-9) instead of switching Ghostty's tabs
+keybind = ctrl+tab=csi:27;5;9~
+keybind = ctrl+shift+tab=csi:27;6;9~
+keybind = super+digit_1=csi:27;5;49~
+keybind = super+digit_2=csi:27;5;50~
+keybind = super+digit_3=csi:27;5;51~
+keybind = super+digit_4=csi:27;5;52~
+keybind = super+digit_5=csi:27;5;53~
+keybind = super+digit_6=csi:27;5;54~
+keybind = super+digit_7=csi:27;5;55~
+keybind = super+digit_8=csi:27;5;56~
+keybind = super+digit_9=csi:27;5;57~

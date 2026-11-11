@@ -1,0 +1,22 @@
+.DS_Store
+
+# Written by programs at runtime, machine-specific: not config we maintain
+# Claude Code creates this in any project folder while its sandbox is on
+.claude/.cc-writes/
+.config/fish/fish_variables
+.config/lazygit/state.yml
+# reinstalled from package.toml with `ya pkg install`
+.config/yazi/flavors/
+# compiled by setup.sh from the sampler.swift next to it
+.config/hammerspoon/modules/colorpicker/sampler
+
+# Machine-specific settings (identity, hosts, work paths), see README.
+# Their starting points in templates/ are tracked.
+*.local
+*.local.*
+!/templates/**
+
+# Never commit secrets (kept local, outside the repo)
+.npmrc
+.ssh/*
+!.ssh/config

@@ -1,0 +1,59 @@
+-- Caffeine replacement: keep the display awake (toggle), like the Caffeine app.
+--   menu bar icon  click toggles (silent, the icon changes)
+--   tmux prefix C  open -g "hammerspoon://caffeine-toggle": toggles + flashes
+-- Adapted from https://github.com/scorphus/scorphiles (hammerspoon/Modules/caffeine.lua)
+-- by Pablo Aguiar. Apache License 2.0, full text in
+-- LICENSES/scorphiles-Apache-2.0.txt of the dotfiles repo.
+-- Changes: self-contained module built on core/toggle, returns the module.
+
+local toggle = require("core.toggle")
+
+local M = {}
+
+-- Pablo's icons (hs.image ASCII format)
+local iconOn = [[ASCII:
+.....1a.....
+............
+......4.....
+1..........a
+e.2......4.3
+............
+............
+............
+e.2......6.3
+5..........c
+......6.....
+............
+.....5c.....
+]]
+
+local iconOff = [[ASCII:
+.......4..46
+.......5.5.7
+............
+............
+.......6.8.8
+.......79..9
+...1.12.....
+............
+............
+...23.3.....
+aab.........
+............
+bcc.........
+]]
+
+M.awake = toggle.new({
+  name = "Caffeine",
+  group = "Caffeine",
+  description = "Keep the display awake",
+  -- Nerd Font coffee / coffee-off (nf-md-coffee, nf-md-coffee_off; by codepoint, so no editor can drop them)
+  flash = { on = utf8.char(0xF0176), off = utf8.char(0xF0FAA) },
+  isOn = function() return hs.caffeinate.get("displayIdle") end,
+  set = function(on) hs.caffeinate.set("displayIdle", on, true) end,
+  menubar = { on = iconOn, off = iconOff },
+  url = "caffeine-toggle",
+  tmuxKey = "prefix C",
+})
+
+return M
