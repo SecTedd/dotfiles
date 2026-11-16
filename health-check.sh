@@ -427,6 +427,8 @@ fish_session_report() {
     bind ctrl-r 2>/dev/null | string match -q "*fzf*"; and echo "BIND=ctrl-r"
     bind ctrl-x 2>/dev/null | string match -q "*fish_clipboard_copy*"; and echo "BIND=ctrl-x"
     type -q ls; and functions ls | string match -q "*eza*"; and echo "ALIAS=ls"
+    command -q uv; and complete -C "uv " | string match -q "sync*"; and echo "COMPLETE=uv"
+    command -q uvx; and complete -C "uvx --" | string match -q -- "--from*"; and echo "COMPLETE=uvx"
   ' 2>"$TMP/fish.err"
 }
 
@@ -465,8 +467,11 @@ check_fish_session() {
     printf '%s\n' "$report" | grep -qE '^NODE=.*/\.nvm/versions/node/' || bad="$bad node-not-from-nvm"
   fi
   printf '%s\n' "$report" | grep -q 'PROMPT=.*catppuccin-lean' || bad="$bad prompt-not-catppuccin-lean"
+  for c in uv uvx; do
+    has "$c" && { has_line "$report" "COMPLETE=$c" || bad="$bad completions:$c"; }
+  done
   if [ -z "$bad" ]; then
-    ok "fish environment, tools, functions, abbreviation and key bindings"
+    ok "fish environment, tools, functions, abbreviations, key bindings, completions"
   else
     fail "fish setup incomplete:$bad"
   fi
@@ -1088,8 +1093,11 @@ check_guard_decisions() {
 allow	ls -la
 allow	git status
 allow	npm run build
+allow	uv run pytest
 allow	echo just a test
 ask	npm install left-pad
+ask	uv python install 3.13
+ask	uv self update
 ask	git push origin main
 ask	/opt/homebrew/bin/gcloud auth login
 ask	cd /tmp && rm -rf ./build
