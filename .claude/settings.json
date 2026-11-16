@@ -163,5 +163,6 @@
     }
   },
   "theme": "dark",
-  "agentPushNotifEnabled": false
+  "agentPushNotifEnabled": false,
+  "model": "opus"
 }

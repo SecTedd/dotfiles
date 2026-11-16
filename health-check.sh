@@ -1616,20 +1616,36 @@ read_ssh_hosts() {
   fi
 }
 
+# The value of one keyword in `ssh -G` output (the host's effective settings,
+# "keyword value..." per line); the first line for a keyword that repeats
+ssh_setting() { printf '%s\n' "$1" | awk -v keyword="$2" '$1==keyword{$1=""; sub(/^ /, ""); print; exit}'; }
+
+# ssh keeps the host's key under HostKeyAlias when one is set, in any of its
+# UserKnownHostsFile entries (two defaults when unset), as gcloud's IAP hosts do
+host_key_known() {
+  local config=$1 host=$2 name file
+  name="$(ssh_setting "$config" hostkeyalias)"
+  for file in $(ssh_setting "$config" userknownhostsfile); do
+    ssh-keygen -F "${name:-$host}" -f "${file/#\~/$HOME}" >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
 check_ssh_hosts() {
-  local h key
+  local h config key
   for h in $SSH_HOSTS; do
-    key="$(ssh -G "$h" </dev/null 2>/dev/null | awk '$1=="identityfile"{print $2; exit}')"
+    config="$(ssh -G "$h" </dev/null 2>/dev/null)"
+    key="$(ssh_setting "$config" identityfile)"
     key="${key/#\~/$HOME}"
     if [ -f "$key" ]; then
       ok "$h: key exists ($key)"
     else
       fail "$h: key missing: $key"
     fi
-    if ssh-keygen -F "$h" -f "$HOME/.ssh/known_hosts" >/dev/null 2>&1; then
+    if host_key_known "$config" "$h"; then
       ok "$h: host key known"
     else
-      warn "$h: host key not in known_hosts yet (first connection asks)"
+      warn "$h: host key not in its known_hosts file yet (first connection asks)"
     fi
   done
 }
