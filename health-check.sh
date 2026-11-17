@@ -1094,10 +1094,15 @@ allow	ls -la
 allow	git status
 allow	npm run build
 allow	uv run pytest
+allow	cargo build --release
+allow	cargo test
 allow	echo just a test
 ask	npm install left-pad
 ask	uv python install 3.13
 ask	uv self update
+ask	cargo add serde
+ask	rustup component add rust-analyzer
+ask	rustup update
 ask	git push origin main
 ask	/opt/homebrew/bin/gcloud auth login
 ask	cd /tmp && rm -rf ./build
@@ -1182,6 +1187,8 @@ allow	Bash	curl -sS https://example.com/api
 allow	Bash	tmux list-panes -a -F '#{pane_id}'
 allow	Bash	just --list
 allow	Bash	just --version
+allow	Bash	rustup show
+allow	Bash	cargo --list
 ask	Bash	python3 -c 'print(1)'
 ask	Bash	bash ~/dotfiles/health-check.sh
 ask	Bash	git fetch origin
@@ -1200,6 +1207,8 @@ deny	Bash	nvim +wq file
 deny	Bash	tmux set -p @claude_readonly 0
 deny	Bash	just test
 deny	Bash	just --evaluate
+deny	Bash	cargo build
+deny	Bash	rustup update
 EOF
 }
 
@@ -1265,7 +1274,7 @@ check_claude_sandbox() {
   claude_setting '.sandbox.enabled == true' || bad="$bad enabled"
   claude_setting '.sandbox.autoAllowBashIfSandboxed == true' || bad="$bad sandboxed-commands-prompt"
   claude_setting '.sandbox.filesystem.allowWrite | index("~/.npm") != null' || bad="$bad caches-writable"
-  claude_setting '.sandbox.network.allowedDomains | length > 0' || bad="$bad allowed-domains"
+  claude_setting '.sandbox.network.allowedDomains | index("index.crates.io") != null and index("static.crates.io") != null' || bad="$bad allowed-domains"
   claude_setting '.sandbox.network.strictAllowlist == true' || bad="$bad strict-allowlist"
   claude_setting '.sandbox.credentials.files | map(.path) | index("~/.ssh") != null' || bad="$bad ssh-keys-hidden"
   claude_setting '.sandbox.excludedCommands | index("git push *") != null' || bad="$bad git-over-ssh-excluded"
@@ -1273,7 +1282,7 @@ check_claude_sandbox() {
   claude_setting '.permissions.allow | index("Bash(git fetch:*)") != null' || bad="$bad fetch-prompts"
   claude_setting '.permissions.ask | index("Bash(dangerouslyDisableSandbox:true)") != null' || bad="$bad retry-prompts"
   if [ -z "$bad" ]; then
-    ok "Bash sandbox on: sandboxed commands and git fetch/pull run without prompts, allowlist locked, caches writable, keys hidden, push and unsandboxed retries prompt, docker and just run outside through the guard"
+    ok "Bash sandbox on: sandboxed commands and git fetch/pull run without prompts, allowlist locked (npm, PyPI, GitHub, Bitbucket, crates.io), caches writable, keys hidden, push and unsandboxed retries prompt, docker and just run outside through the guard"
   else
     fail "Bash sandbox settings incomplete:$bad"
   fi

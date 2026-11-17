@@ -12,6 +12,8 @@
 \buv\s+(add|sync|tool\s+(install|run)|pip\s+install|python\s+install|self\s+update)\b
 \bbrew\s+(install|reinstall|uninstall|upgrade|tap|link)\b
 \b(gem|cargo|go|rustup|nvm|pyenv)\s+install\b
+\bcargo\s+add\b
+\brustup\s+(update|self\s+update|toolchain\s+(install|add)|component\s+add|target\s+add)\b
 \bclaude\s+(update|--update)\b
 \b--dangerously-skip-permissions\b
 

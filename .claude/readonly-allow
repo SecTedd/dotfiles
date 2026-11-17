@@ -42,6 +42,8 @@
 ^npm +(ls|list|view|info|show|outdated|explain|why|root|prefix|bin|search|docs|repo|version$|-v$|--version$|config +(get|list|ls)|audit( +--\S+)*$)( |$)
 ^(pip3?|uv +pip|pipx) +(list|show|freeze|check|inspect|--version|-V)( |$)
 ^uv +(tree|--version)( |$)
+^rustup +(show|which|check|toolchain +list|component +list|target +list)( |$)
+^cargo +(--list|search|locate-project|pkgid)( |$)
 ^(nvm +(ls|list|current|which|version|--version|ls-remote)|pyenv +(versions|version|which|whence|root|prefix|--version|version-name|global$|local$|shell$))( |$)
 ^(docker +(ps|images|logs|inspect|version|info|top|port|diff|history)|kubectl +(get|describe|logs|version|explain|api-resources|top|config +(view|current-context|get-contexts)))( |$)
 ^just +(--list|-l|--summary|--show|-s|--dump|--variables|--groups|--help|-h)( |$)

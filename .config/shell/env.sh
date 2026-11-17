@@ -51,6 +51,10 @@ if [ -r "$NVM_DIR/alias/default" ]; then
   unset _nvm_version _nvm_hops _nvm_dir
 fi
 
+# Rust: rustup's toolchain commands. rustup is installed with --no-modify-path,
+# so this is the one place that puts them on PATH (nothing to do without Rust)
+path_prepend "$HOME/.cargo/bin"
+
 path_prepend "$HOME/.local/bin"
 
 # Docker Desktop's CLI folder in its "User" install mode (its "System" mode links

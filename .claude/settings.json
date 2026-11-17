@@ -86,7 +86,10 @@
         "*.github.com",
         "*.githubusercontent.com",
         "bitbucket.org",
-        "api.bitbucket.org"
+        "api.bitbucket.org",
+        "crates.io",
+        "index.crates.io",
+        "static.crates.io"
       ],
       "strictAllowlist": true
     },
