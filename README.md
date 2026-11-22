@@ -211,6 +211,9 @@ also searchable by name: `ctrl l`, `cmd`, `enter`), `⌃J`/`⌃K` move, `⏎` or
   into none of the shell files here; `env.sh` puts `~/.cargo/bin` on PATH when it exists, fish
   brings the `cargo` and `rustup` completions itself, the guard asks before `cargo add` and
   rustup's downloads, and read-only mode lets the harmless `rustup show`-style queries through.
+- fish loads `env.sh` once per process tree; children inherit the result. A login fish (every
+  tmux pane) takes the PATH back from `__ENV_SH_PATH`, because fish's macOS login startup puts
+  the system folders (`/etc/paths`) in front of Homebrew, nvm and pyenv.
 - The running tmux server passes its environment to new panes. After changes to `env.sh`,
   `tmux kill-server` and start tmux from a new terminal window; the health check warns about a
   stale server PATH.

@@ -6,12 +6,16 @@
 
 # Shared environment: PATH, EDITOR, nvm's default Node, ... Loaded once per process
 # tree: a child shell (tmux pane, nvim terminal) inherits it, until env.sh, nvm's
-# default or the set of installed Node versions changes
+# default or the set of installed Node versions changes. A login child (every tmux
+# pane) gets env.sh's PATH back: fish's macOS login startup moved /etc/paths in front
 set -l env_stamp (path mtime ~/.config/shell/env.sh ~/.config/shell/env.local.sh \
     ~/.nvm/alias/default ~/.nvm/versions/node | string join -)
-if test "$__env_sh_stamp" != "$env_stamp"
+if test "$__env_sh_stamp" != "$env_stamp"; or not set -q __ENV_SH_PATH[1]
     fenv source ~/.config/shell/env.sh
     set -gx __env_sh_stamp $env_stamp
+    set -gx __ENV_SH_PATH $PATH # a name ending in PATH arrives in the child as a list
+else if status is-login
+    set -gx PATH $__ENV_SH_PATH
 end
 
 # Colors: the Catppuccin Mocha theme is saved in fish_variables (setup.sh)

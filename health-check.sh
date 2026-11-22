@@ -477,6 +477,26 @@ check_fish_session() {
   fi
 }
 
+# Like a tmux pane: a login fish started from a fish that loaded env.sh; its PATH, one per line
+fish_login_child_path() {
+  fresh_fish -c 'fish -l -c "string join \n \$PATH"' 2>&1
+}
+
+# Whichever comes first in the PATH lines: Homebrew's bin folder or the system's
+first_bin_folder() { printf '%s\n' "$1" | grep -m1 -xE '/opt/homebrew/bin|/usr/bin'; }
+
+# fish's macOS login startup puts /etc/paths in front; config.fish restores env.sh's order
+check_fish_login_child_path() {
+  local path_lines
+  path_lines="$(fish_login_child_path)"
+  if [ "$(first_bin_folder "$path_lines")" = /opt/homebrew/bin ]; then
+    ok "a login fish started from fish (tmux pane) keeps env.sh's PATH order"
+  else
+    fail "a login fish started from fish (tmux pane) puts the system folders before Homebrew:"
+    detail "$path_lines"
+  fi
+}
+
 # A temp git repo with a package.json and a .venv, to render the prompt in (git uses it too)
 make_sample_project() {
   mkdir -p "$TMP/proj/.venv/bin"
@@ -525,6 +545,7 @@ check_fish_prompt() {
 check_fish() {
   check_fish_syntax
   check_fish_session
+  check_fish_login_child_path
   check_fish_prompt
 }
 
