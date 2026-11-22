@@ -166,6 +166,7 @@
     }
   },
   "theme": "dark",
+  "tui": "fullscreen",
   "agentPushNotifEnabled": false,
   "model": "opus"
 }
