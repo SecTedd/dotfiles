@@ -11,6 +11,8 @@
 ^/Brewfile.*
 ^/health-check\.sh
 ^/setup\.sh
+^/macos\.sh
+^/macos
 ^/lib
 ^/templates
 \.cc-writes

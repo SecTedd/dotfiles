@@ -56,7 +56,8 @@
 \bxattr\b.*quarantine
 
 # git: anything that leaves the machine, rewrites history or discards work
-\bgit\s+push\b
+# git push, also with git's own options in front of push (git -C <dir> push, git --no-pager push)
+\bgit(\s+-\S+(\s+("[^"]*"|'[^']*'|[^-[:space:]]\S*))?)*\s+push\b
 \bgit\s+(reset\s+--hard|clean\s+-[a-zA-Z]*f|branch\s+-D|filter-branch|filter-repo|rebase|commit\s+--amend)\b
 \bgit\s+(checkout\s+--|restore|switch\s+--discard-changes|stash\s+(drop|clear)|tag\s+-d)\b
 \bgit\s+remote\s+(add|set-url|remove|rm)\b

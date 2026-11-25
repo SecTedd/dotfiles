@@ -143,6 +143,29 @@ check_system() {
   check "fish listed in /etc/shells" grep -qx "$FISH" /etc/shells
 }
 
+# ── macOS preferences (macos.sh) ──────────────────────────────
+
+# macos.sh --check compares every value it sets with this Mac and changes nothing: its
+# failures are values still to apply, its warnings nested values that differ from macos/
+check_macos_prefs() {
+  local report failures warnings
+  report="$(bash "$DOT/macos.sh" --check 2>&1)"
+  failures="$(printf '%s\n' "$report" | sed -n 's/^  ✘ //p')"
+  warnings="$(printf '%s\n' "$report" | sed -n 's/^  ! //p')"
+  if [ -z "$failures" ] && [ -z "$warnings" ]; then
+    ok "macOS preferences as macos.sh sets them (keyboard, trackpad, screen zoom, appearance, Dock, windows, menu bar, Finder, system shortcuts, keyboard layouts)"
+    return
+  fi
+  if [ -n "$failures" ]; then
+    fail "macOS preferences not as macos.sh sets them (./macos.sh applies them, most take effect at the next login):"
+    detail "$failures"
+  fi
+  if [ -n "$warnings" ]; then
+    warn "macOS nested preferences: this Mac and macos/ differ:"
+    detail "$warnings"
+  fi
+}
+
 # ── Packages ──────────────────────────────────────────────────
 
 font_installed_by_hand() { ls "$HOME"/Library/Fonts/RobotoMonoNerdFont* >/dev/null 2>&1; }
@@ -290,12 +313,14 @@ check_templates() {
 
 check_script_syntax() {
   local bad="" f
-  for f in setup.sh health-check.sh lib/common.sh; do
+  for f in setup.sh health-check.sh macos.sh lib/common.sh; do
     bash -n "$DOT/$f" 2>/dev/null || bad="$bad $f"
   done
-  [ -x "$DOT/setup.sh" ] || bad="$bad setup.sh(not executable)"
+  for f in setup.sh macos.sh; do
+    [ -x "$DOT/$f" ] || bad="$bad $f(not executable)"
+  done
   if [ -z "$bad" ]; then
-    ok "setup.sh, health-check.sh and lib/common.sh parse; setup.sh is executable"
+    ok "setup.sh, health-check.sh, macos.sh and lib/common.sh parse; setup.sh and macos.sh are executable"
   else
     fail "script problems:$bad"
   fi
@@ -951,6 +976,31 @@ check_window_steps() {
   fi
 }
 
+# The menu bar icons (core/icon.lua): both switches carry drawn images of the expected size
+# (the drawing's width plus the margins, 16 pt tall, on and off the same width so the item
+# stays put on a click) and their panel rows show them
+HS_ICONS_QUERY='local function size(image) local s = image:size(); return string.format("%gx%g", s.w, s.h) end
+  local caffeine, claude = require("modules.caffeine"), require("modules.claude")
+  print("CAFFEINE=" .. size(caffeine.awake.spec.menubar.on) .. " " .. size(caffeine.awake.spec.menubar.off))
+  print("CLAUDE=" .. size(claude.sounds.spec.menubar.on) .. " " .. size(claude.sounds.spec.menubar.off))
+  local rows = 0
+  for _, e in ipairs(require("core.shortcuts").all()) do if e.icon and e.iconTemplate then rows = rows + 1 end end
+  print("ICONROWS=" .. rows)'
+
+check_menubar_icons() {
+  local report bad="" expected
+  report="$(with_timeout 10 hs -t 5 -c "$HS_ICONS_QUERY" 2>&1 </dev/null)"
+  for expected in "CAFFEINE=26.5x16 26.5x16" "CLAUDE=23x16 23x16" ICONROWS=2; do
+    has_line "$report" "$expected" || bad="$bad [$expected]"
+  done
+  if [ -z "$bad" ]; then
+    ok "menu bar icons drawn (core/icon.lua): caffeine molecule / moon, bell / muted bell, both in the panel"
+  else
+    fail "menu bar icons (core/icon.lua) wrong:$bad"
+    detail "$report"
+  fi
+}
+
 # Apps behind ⌃⌥⌘ keys: core ones plus those in config.local.lua; a missing one is just info
 check_hammerspoon_apps() {
   local ids id
@@ -1002,6 +1052,7 @@ check_hammerspoon() {
   fi
   check_hammerspoon_report "$report" "$lua_files"
   check_window_steps
+  check_menubar_icons
   check_hammerspoon_apps
 }
 
@@ -1113,6 +1164,8 @@ check_guard_decisions() {
   done <<'EOF'
 allow	ls -la
 allow	git status
+allow	git -C /tmp/x status
+allow	git log --grep push
 allow	npm run build
 allow	uv run pytest
 allow	cargo build --release
@@ -1125,6 +1178,9 @@ ask	cargo add serde
 ask	rustup component add rust-analyzer
 ask	rustup update
 ask	git push origin main
+ask	git -C /tmp/x push
+ask	git -C "/tmp/my repo" push --force-with-lease
+ask	git --no-pager -c user.name=x push origin main
 ask	/opt/homebrew/bin/gcloud auth login
 ask	cd /tmp && rm -rf ./build
 ask	cat ~/.ssh/config
@@ -1768,6 +1824,7 @@ main() {
     "$C_BLUE" "$C_RESET" "$C_DIM" "$DOT" "$(date '+%Y-%m-%d %H:%M')" "$C_RESET"
 
   section "System";                     check_system
+  section "macOS preferences (macos.sh)"; check_macos_prefs
   section "Packages (Brewfile)";        check_packages
   section "Links (stow)";               check_links
   section "Repo (secrets, ignores)";    check_repo

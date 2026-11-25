@@ -1,6 +1,6 @@
 # dotfiles: rules for this repo
 
-- The folder mirrors `~`, GNU Stow links it. Scripts, `lib/`, `templates/`, `README.md`,
+- The folder mirrors `~`, GNU Stow links it. Scripts, `lib/`, `macos/`, `templates/`, `README.md`,
   `LICENSE`, `LICENSES/`, `Brewfile` and this file stay unlinked (`.stow-local-ignore`).
 - Nothing in the repo is tied to one Mac or one job: identity, hosts, work paths and Claude
   plugins live in git-ignored local files with templates in `templates/`. The scripts know no

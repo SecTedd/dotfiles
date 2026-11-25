@@ -14,12 +14,13 @@ work paths live in git-ignored local files (see below), so the same repo serves 
    ```
    `setup.sh` installs the Brewfile packages, makes fish the login shell, links the repo into `~`,
    installs Oh My Fish, the tmux plugins and the yazi flavor, points Hammerspoon at its config,
-   compiles the color picker's helper, creates the local files from `templates/` and finishes
-   with the health check.
+   compiles the color picker's helper, creates the local files from `templates/`, sets the macOS
+   preferences (`macos.sh`) and finishes with the health check.
    It asks only for the sudo password (login shell) and before moving existing files aside.
    Every download is pinned to a version and comes from the official repo (listed in `setup.sh`).
 3. What it can't do for you: allow Hammerspoon under System Settings → Privacy & Security →
-   Accessibility, fill in the local files, add SSH keys, `nvm install --lts`, `pyenv install ...`.
+   Accessibility, give the terminal Full Disk Access there (two screen zoom preferences need it),
+   fill in the local files, add SSH keys, `nvm install --lts`, `pyenv install ...`.
 
 `setup.sh --dry-run` only prints what it would do, `--verbose` also lists what was already fine
 (by default only changes, warnings and errors are printed); `--help` lists the options.
@@ -54,9 +55,9 @@ bash ~/dotfiles/health-check.sh            # read-only, ~15 s
 bash ~/dotfiles/health-check.sh --online   # also tests the SSH login to every host in ~/.ssh/config.local
 bash ~/dotfiles/health-check.sh --verbose  # also every passed check (default: warnings, failures, notes)
 ```
-Checks packages, links, secrets, fish, zsh, tmux (on a throwaway server), nvim, Hammerspoon,
-the Claude Code scripts, git, SSH and the other tools, and proves at the end that it changed
-no file in the repo.
+Checks the macOS preferences, packages, links, secrets, fish, zsh, tmux (on a throwaway server),
+nvim, Hammerspoon, the Claude Code scripts, git, SSH and the other tools, and proves at the end
+that it changed no file in the repo.
 
 ## What's in here
 
@@ -64,7 +65,9 @@ no file in the repo.
 |---|---|
 | `setup.sh` | New Mac / update: everything after `git clone` (see above) |
 | `health-check.sh` | Read-only check that everything is installed, linked and working |
-| `lib/common.sh` | Output helpers shared by the two scripts |
+| `macos.sh` | The macOS preferences, one `defaults` line each; `setup.sh` runs it last (see Notes) |
+| `macos/` | The nested preferences kept whole: system keyboard shortcuts, keyboard layouts (`macos.sh --save`) |
+| `lib/common.sh` | Output helpers shared by the scripts |
 | `templates/` | Starting points for the local files (`setup.sh` copies them if missing) |
 | `Brewfile` | Homebrew packages (`brew bundle`) |
 | `.config/shell/env.sh` | Shared environment for fish and zsh: PATH (Homebrew, pyenv, nvm's default Node, rustup's toolchain and Docker Desktop's CLI folder when present), EDITOR, npm settings |
@@ -73,7 +76,7 @@ no file in the repo.
 | `.zshenv` `.zprofile` `.zshrc` | zsh: environment only + minimal emergency fallback (Claude Code's Bash tool runs zsh) |
 | `.config/tmux/` | tmux (prefix `Ctrl-Space`, Catppuccin, Claude Code integration), `window-menu.sh` (Ctrl-Shift-Tab) |
 | `.config/nvim/` | Neovim (LazyVim) |
-| `.config/hammerspoon/` | Hammerspoon: `init.lua`, `core/` (boxes, shortcut registry, toggles, hold-to-repeat, per-Mac settings), `modules/` (apps, tabs, scroll, chrome, windows, windowmode, claude, caffeine, colorpicker, panel), `data/` (fish shortcuts and plugin-bound tmux keys for the panel) |
+| `.config/hammerspoon/` | Hammerspoon: `init.lua`, `core/` (boxes, shortcut registry, toggles, drawn menu bar icons, hold-to-repeat, per-Mac settings), `modules/` (apps, tabs, scroll, chrome, windows, windowmode, claude, caffeine, colorpicker, panel), `data/` (fish shortcuts and plugin-bound tmux keys for the panel) |
 | `.config/git/` | git config, global attributes (mergiraf) and ignore |
 | `.config/ghostty/` `.config/lazygit/` `.config/bat/` `.config/yazi/` | Terminal, lazygit, bat, yazi |
 | `.claude/` | Claude Code settings, `CLAUDE.md` (how I work with Claude, every project), hook/statusline scripts, the command guard (`claude-guard.sh`, `guard-ask`, `guard-deny`), the read-only mode (`claude-readonly.sh`, `readonly-allow`, `readonly-deny`); no sessions or credentials |
@@ -102,16 +105,19 @@ template's placeholder.
 
 ## Hammerspoon
 
-`init.lua` loads `core/` (shared: the Catppuccin boxes, the shortcut registry, toggles,
-hold-to-repeat, per-Mac settings), then every module in `modules/` on its own, so a broken module
-shows its error in a box while the rest keeps working. Saving a `.lua` file reloads the config.
+`init.lua` loads `core/` (shared: the Catppuccin boxes, the shortcut registry, toggles, drawn
+menu bar icons, hold-to-repeat, per-Mac settings), then every module in `modules/` on its own,
+so a broken module shows its error in a box while the rest keeps working. Saving a `.lua` file
+reloads the config.
 A module is one feature in one file that returns a table with everything that must stay alive
 (hotkeys, menu bar items, watchers); it uses `core`, never another module. Global hotkeys are
 bound through `shortcuts.bind(...)` with a group and a description, never through `hs.hotkey`
 directly; window mode's keys live in an `hs.hotkey.modal` and are listed by hand (`shortcuts.add`).
 On/off things (Claude sounds, display awake) are `core/toggle.lua` switches: an optional menu bar
 icon (click = silent) and/or an optional URL event for tmux (`hammerspoon://…-toggle`, flashes
-the new state), both listed in the panel.
+the new state), both listed in the panel. Menu bar icons are drawn (`core/icon.lua`: lines, shapes
+and dots on a 16 pt canvas, black, so macOS tints them like its own); each carries its own margin
+because the menu bar spacing is 0 (`macos.sh`).
 
 ### Shortcut panel (⌃⌥⌘ Space)
 
@@ -142,8 +148,9 @@ also searchable by name: `ctrl l`, `cmd`, `enter`), `⌃J`/`⌃K` move, `⏎` or
   `.claude/claude-guard.sh` (a PreToolUse hook): a command matching a line of `guard-ask`
   prompts for approval, also in auto mode, and the prompt names the matched text; one matching
   `guard-deny` is refused. One regex per line; add to `guard-ask` freely, a match only costs a
-  prompt. The health check self-tests the guard with sample command strings (nothing runs). New
-  Claude sessions pick up changes.
+  prompt. `git push` asks with any git option in front of `push` (`git -C <dir> push` too). The
+  health check self-tests the guard with sample command strings (nothing runs). New Claude
+  sessions pick up changes.
 - `prefix R` makes the Claude in the current tmux pane read-only, to discuss without risk:
   `.claude/claude-readonly.sh` (a PreToolUse hook) refuses edits and every shell command that
   writes (`readonly-deny`, redirections, substitutions, in-place edits), runs the ones that read
@@ -189,7 +196,8 @@ also searchable by name: `ctrl l`, `cmd`, `enter`), `⌃J`/`⌃K` move, `⏎` or
   files. Sandboxed commands run without a prompt; the guard above is what still asks. The
   allowlist is locked (no per-command exceptions), so a command that needs more fails inside
   and Claude asks to run it unsandboxed, which always prompts. git over SSH runs outside the
-  sandbox (a macOS limit): fetch and pull without a prompt, push through the guard. Docker and
+  sandbox (a macOS limit): fetch and pull without a prompt, push through the guard. A `git -C`
+  or a `cd` in front keeps the call sandboxed, so start Claude in the repo. Docker and
   `just` run outside it too, since the Docker socket is unreachable from inside; both go
   through the guard, as a `just` recipe runs anything.
   Start Claude in the project folder, not in `~`, or the writable area is your whole home.
@@ -207,6 +215,14 @@ also searchable by name: `ctrl l`, `cmd`, `enter`), `⌃J`/`⌃K` move, `⏎` or
 - Some tools offer to "manage" `~/.ssh/config` for you; that file is in this repo, so keep such
   Includes in `~/.ssh/config.local`. The health check flags absolute home paths that land in
   repo files anyway.
+- `macos.sh` sets the macOS preferences: key repeat, tap to click, Ctrl + scroll zooms the
+  screen, dark mode and dark icons, Dock hidden with ⌘Tab on every display and no hot corners,
+  tiled windows without margins, menu bar items without spacing, Finder's path and status bar.
+  One `defaults` line each, read before written; `setup.sh` runs it last. The system keyboard
+  shortcuts and the keyboard layouts are nested values kept whole in `macos/`: change them in
+  System Settings, `./macos.sh --save`, commit (the health check warns while this Mac and the
+  files differ). Most values apply at the next login, nothing logs you out; the screen zoom
+  lines need Full Disk Access for the terminal.
 - Rust is a per-Mac install, not a Brewfile entry: rustup with `--no-modify-path`, so it writes
   into none of the shell files here; `env.sh` puts `~/.cargo/bin` on PATH when it exists, fish
   brings the `cargo` and `rustup` completions itself, the guard asks before `cargo add` and
@@ -225,7 +241,8 @@ This repo is MIT licensed (`LICENSE`). The adapted third-party code below keeps 
 - Claude Code integration (`.claude/claude-announce.sh`, `claude-fleet.sh`, `claude-menu.sh`,
   `hammerspoon/modules/claude.lua`, parts of `tmux.conf`): adapted from [scorphus/tmux-claude-integration](https://github.com/scorphus/tmux-claude-integration),
   BSD 3-Clause, see `LICENSES/tmux-claude-integration.txt`.
-- `hammerspoon/modules/caffeine.lua`, `tmux/window-menu.sh` and fish copy key bindings: adapted
+- `hammerspoon/core/icon.lua` and the menu bar icons in `hammerspoon/modules/caffeine.lua` and
+  `modules/claude.lua`, `macos.sh`, `tmux/window-menu.sh` and fish copy key bindings: adapted
   from [scorphus/scorphiles](https://github.com/scorphus/scorphiles), Apache 2.0, see
   `LICENSES/scorphiles-Apache-2.0.txt`.
 - `.config/nvim/`: based on the [LazyVim starter](https://github.com/LazyVim/starter), Apache 2.0

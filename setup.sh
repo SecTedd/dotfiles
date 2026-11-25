@@ -5,7 +5,7 @@
 #
 #   --dry-run       only print what would be done
 #   --yes           don't ask before moving conflicting files aside
-#   --skip a,b,...  skip steps: packages shell links omf tmux yazi node hammerspoon local check
+#   --skip a,b,...  skip steps: packages shell links omf tmux yazi node hammerspoon local macos check
 #   --pins          report only: pinned vs installed vs latest upstream version of each piece
 #   --verbose       also print what was already fine (by default: changes, warnings, errors)
 #
@@ -465,6 +465,20 @@ step_local() {
   copy_template claude/plugins.local.json "$HOME/.claude/plugins.local.json"
 }
 
+# The macOS preferences live in their own script (./macos.sh --help). It prints what it
+# changed under this step's header (handed down, printed with its first line); whether there
+# is something to change is asked first, since a child can't add to this script's count
+macos() { SECTION_PENDING="$SECTION_PENDING" bash "$DOT/macos.sh" "$@"; }
+
+step_macos() {
+  if [ $DRY -eq 1 ]; then
+    macos --dry-run
+    return
+  fi
+  bash "$DOT/macos.sh" --check >/dev/null 2>&1 || CHANGES=$((CHANGES + 1))
+  if [ $VERBOSE -eq 1 ]; then macos --verbose; else macos; fi
+}
+
 step_left_for_you() {
   info "Hammerspoon: allow it under System Settings → Privacy & Security → Accessibility"
   [ -n "$NEW_LOCAL" ] && info "fill in the new local files:$NEW_LOCAL"
@@ -515,6 +529,7 @@ main() {
   step node        "Node (nvm)"                         step_node
   step hammerspoon "Hammerspoon"                        step_hammerspoon
   step local       "Machine-specific files (templates/)" step_local
+  step macos       "macOS preferences (macos.sh)"        step_macos
 
   if [ $VERBOSE -eq 1 ] || [ $CHANGES -gt 0 ]; then
     section "Left for you"; step_left_for_you

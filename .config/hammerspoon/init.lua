@@ -6,6 +6,7 @@
 --     ui.lua           on-screen boxes: flash 1 s / alert 4 s / error 8 s (+ ⌃⌥⌘X closes all)
 --     shortcuts.lua    registry of all hotkeys; modules bind through it (shortcuts.bind)
 --     toggle.lua       on/off switch with menu bar icon and/or URL event for tmux (claude, caffeine)
+--     icon.lua         menu bar icons drawn as shapes (claude's bell, caffeine's molecule and moon)
 --     hold.lua         repeat an action while a key is held, with a safety cap (scroll, windowmode)
 --     machine.lua      settings for this Mac from config.local.lua (git-ignored,
 --                      template in templates/hammerspoon/ of the repo)

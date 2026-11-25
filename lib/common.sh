@@ -22,7 +22,7 @@ PASS=0
 WARNS=0
 FAILS=0
 CHANGES=0
-SECTION_PENDING=""
+SECTION_PENDING="${SECTION_PENDING:-}" # a calling script may hand down its not yet printed section
 
 section() {
   if [ "$VERBOSE" -eq 1 ]; then
